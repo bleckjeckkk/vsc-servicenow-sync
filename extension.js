@@ -76,8 +76,33 @@ var ServiceNowSync = (function () {
                                         _this.updateRecord(folderSettings, sys_id, doc.getText(), () => {
                                             vscode.window.setStatusBarMessage('✔️ File Uploaded', 2000);
                                         });
+                                    } else if (res === 'Diff') {
+                                        vscode.window.showInformationMessage('🔥 To Diff');
+                                        vscode.window.showInformationMessage('fileFolder: ' + fileFolder);
+                                
+                                        let old = doc.fileName + '.old';
+                                        let server = doc.fileName + '.svr';
+                                        let current = doc.fileName;
+
+                                        fs.writeFileSync(old , prevDoc.toString());
+                                        fs.writeFileSync(server, record[folderSettings.field]);
+
+                                        let _oldFileName = path.basename(old);
+                                        let _serverFileName = path.basename(server);
+
+                                        vscode.commands.executeCommand ( 'vscode.diff', '/client_script.old', '/client_script.svr' );
+
+
+                                        vscode.window.showInformationMessage('After');
+                                        
                                     } else {
-                                        vscode.window.setStatusBarMessage('❌️ File Not Uploaded', 2000);
+                                        vscode.window.showInformationMessage('❌️ File Not Uploaded', 2000);
+
+                                        let server = doc.fileName + '.svr';
+                                        fs.writeFileSync(server, record[folderSettings.field]);
+
+                                        vscode.window.showInformationMessage('Latest copy saved to ' + server);
+
                                     }
                                 });
                             } else {
@@ -122,6 +147,12 @@ var ServiceNowSync = (function () {
                                 fs.writeFileSync(fsPath, record[folderSettings.field]);
                             } else {
                                 vscode.window.setStatusBarMessage('❌️ File Not Updated', 2000);
+
+                                let server = fsPath + '.svr';
+                                fs.writeFileSync(server, record[folderSettings.field]);
+
+                                vscode.window.showInformationMessage('Latest copy saved to ' + server);
+
                             }
                         });
                     } else {
