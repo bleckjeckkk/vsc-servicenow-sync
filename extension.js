@@ -71,29 +71,42 @@ var ServiceNowSync = (function () {
 
                             if (diff.length > 1 || diff[0].added || diff[0].removed) {
                                 // Please note this is a variadic function
-                                vscode.window.showInformationMessage('Remote record has been updated, overwrite?', 'Yes', 'No').then(function (res) {
+                                vscode.window.showInformationMessage('Remote record has been updated, overwrite?', 'Yes', 'Diff', 'No').then(function (res) {
                                     if (res === 'Yes') {
                                         _this.updateRecord(folderSettings, sys_id, doc.getText(), () => {
                                             vscode.window.setStatusBarMessage('✔️ File Uploaded', 2000);
                                         });
                                     } else if (res === 'Diff') {
-                                        vscode.window.showInformationMessage('🔥 To Diff');
-                                        vscode.window.showInformationMessage('fileFolder: ' + fileFolder);
+                                        vscode.window.setStatusBarMessage('🔥 To Diff', 2000);
                                 
                                         let old = doc.fileName + '.old';
-                                        let server = doc.fileName + '.svr';
                                         let current = doc.fileName;
+                                        let server = doc.fileName + '.svr';
 
                                         fs.writeFileSync(old , prevDoc.toString());
+                                        // fs.writeFileSync(current , prevDoc.toString());
                                         fs.writeFileSync(server, record[folderSettings.field]);
 
-                                        let _oldFileName = path.basename(old);
-                                        let _serverFileName = path.basename(server);
-
-                                        vscode.commands.executeCommand ( 'vscode.diff', '/client_script.old', '/client_script.svr' );
-
-
-                                        vscode.window.showInformationMessage('After');
+                                        let _oldFileName = vscode.Uri.file(old);
+                                        let _currentFileName = vscode.Uri.file(current);
+                                        let _serverFileName = vscode.Uri.file(server);
+                                        
+                                        vscode.window.showInformationMessage(
+                                            'Pick a view.',
+                                            'LOCAL -> SERVER',
+                                            'SERVER -> LOCAL'
+                                        ).then(function (res) {
+                                            switch (res) {
+                                                case 'LOCAL -> SERVER':
+                                                    vscode.commands.executeCommand ( 'vscode.diff', _currentFileName, _serverFileName, `[LOCAL] ${path.basename(current)} -> [SERVER] ${path.basename(server)}` );
+                                                    break;
+                                                case 'SERVER -> LOCAL':
+                                                    vscode.commands.executeCommand ( 'vscode.diff', _serverFileName, _currentFileName, `[SERVER] ${path.basename(server)} -> [LOCAL] ${path.basename(current)}` );
+                                                    break;
+                                                default:
+                                                    break;
+                                            }
+                                        });
                                         
                                     } else {
                                         vscode.window.showInformationMessage('❌️ File Not Uploaded', 2000);
@@ -142,9 +155,25 @@ var ServiceNowSync = (function () {
 
                     if (diff.length > 1 || diff[0].added || diff[0].removed) {
                         // Please note this is a variadic function
-                        vscode.window.showInformationMessage('Remote record has been updated, overwrite local copy?', 'Yes', 'No').then(function (res) {
+                        vscode.window.showInformationMessage('Remote record has been updated, overwrite local copy?', 'Yes', 'Diff', 'No').then(function (res) {
                             if (res === 'Yes') {
                                 fs.writeFileSync(fsPath, record[folderSettings.field]);
+                            } else if (res === 'Diff') {
+                                vscode.window.setStatusBarMessage('🔥 To Diff', 2000);
+                        
+                                let old = fsPath + '.old';
+                                let server = fsPath + '.svr';
+                                let current = fsPath;
+
+                                fs.writeFileSync(old , prevDoc.toString());
+                                fs.writeFileSync(server, record[folderSettings.field]);
+
+                                let _oldFileName = vscode.Uri.file(old);
+                                let _currentFileName = vscode.Uri.file(current);
+                                let _serverFileName = vscode.Uri.file(server);
+
+                                vscode.commands.executeCommand ( 'vscode.diff', _currentFileName, _serverFileName, `[LOCAL] ${path.basename(current)} -> [SERVER] ${path.basename(server)}` );
+
                             } else {
                                 vscode.window.setStatusBarMessage('❌️ File Not Updated', 2000);
 
